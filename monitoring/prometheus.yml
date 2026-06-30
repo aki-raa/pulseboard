@@ -1,0 +1,46 @@
+# Global section -> controls default timing behavior for all scrape jobs
+global:
+  # How often Prometheus collects metrics from all targets
+  scrape_interval: 15s
+  # How often Prometheus checks alert rules (if any are defined)
+  evaluation_interval: 15s
+
+# Scrape configs section -> defines what services Prometheus should monitor
+scrape_configs:
+
+  # Auth service -> handles authentication, runs on port 8080
+  - job_name: "auth-service"
+    static_configs:
+      # Target must match server.port in auth-service/application.properties
+      - targets: ["localhost:8080"]
+    # Spring Boot exposes metrics here instead of default /metrics
+    metrics_path: "/actuator/prometheus"
+
+  # Location service -> handles GPS location events, runs on port 8082
+  - job_name: "location-service"
+    static_configs:
+      # Target must match server.port in location-service/application.properties
+      - targets: ["localhost:8082"]
+    # Spring Boot exposes metrics here instead of default /metrics
+    metrics_path: "/actuator/prometheus"
+
+  # Chat service -> handles real-time dispatch chat, runs on port 8083
+  - job_name: "chat-service"
+    static_configs:
+      # Target must match server.port in chat-service/application.properties
+      - targets: ["localhost:8083"]
+    # Spring Boot exposes metrics here instead of default /metrics
+    metrics_path: "/actuator/prometheus"
+
+  # Alert service -> handles overspeed alerts, runs on port 8084
+  - job_name: "alert-service"
+    static_configs:
+      # Target must match server.port in alert-service/application.properties
+      - targets: ["localhost:8084"]
+    # Spring Boot exposes metrics here instead of default /metrics
+    metrics_path: "/actuator/prometheus"
+
+#scrape:configs:
+#  - job_name: "this can be anything but for better understanding add the relevant name"
+#    static_configs:
+#      - targets: ["host:port"] this port can be anything if the thing is running locally as: Docker Compose the container is named node_exporter and it runs on port 9100. Docker network resolves the name automatically.
