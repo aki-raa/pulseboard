@@ -1,0 +1,13 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "slack"
+
+receivers:
+  - name: "slack"
+    slack_configs:
+      - api_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#pulseboard-alerts"
+        send_resolved: true
+

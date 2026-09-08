@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chat-service-secret
+  namespace: pulseboard
+type: Opaque
+stringData:
+  DB_USERNAME: root
+  DB_PASSWORD: pulseboard_root
+  JWT_SECRET: pulseboard-local-jwt-secret-2026-strong-key
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-service
+  namespace: pulseboard
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: chat-service
+
+  template:
+    metadata:
+      labels:
+        app: chat-service
+
+    spec:
+      containers:
+        - name: chat-service
+          image: pulseboard-chat-service:v2
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8083
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8083
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 15
+
+          env:
+            - name: DB_URL
+              value: jdbc:mysql://mysql:3306/pulseboard
+
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: chat-service-secret
+                  key: DB_USERNAME
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chat-service-secret
+                  key: DB_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: chat-service-secret
+                  key: JWT_SECRET
+
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-service
+  namespace: pulseboard
+spec:
+  selector:
+    app: chat-service
+
+  ports:
+    - port: 8083
+      targetPort: 8083
+
