@@ -45,7 +45,7 @@ resource "kubernetes_deployment" "grafana" {
 
       spec {
         automount_service_account_token = false
-        enable_service_links             = false
+        enable_service_links            = false
 
         container {
           name              = "grafana"
@@ -74,8 +74,14 @@ resource "kubernetes_deployment" "grafana" {
           }
 
           env {
-            name  = "GF_SECURITY_ADMIN_PASSWORD"
-            value = "pulseboard_admin"
+            name = "GF_SECURITY_ADMIN_PASSWORD"
+
+            value_from {
+              secret_key_ref {
+                name = "grafana-secret"
+                key  = "GF_SECURITY_ADMIN_PASSWORD"
+              }
+            }
           }
 
           volume_mount {

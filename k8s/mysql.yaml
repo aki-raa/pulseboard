@@ -1,14 +1,4 @@
 apiVersion: v1
-kind: Secret
-metadata:
-  name: mysql-secret
-  namespace: pulseboard
-type: Opaque
-stringData:
-  MYSQL_ROOT_PASSWORD: pulseboard_root
-
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc

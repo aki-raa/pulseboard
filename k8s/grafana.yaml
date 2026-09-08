@@ -45,7 +45,10 @@ spec:
               value: admin
 
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: pulseboard_admin
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-secret
+                  key: GF_SECURITY_ADMIN_PASSWORD
 
           volumeMounts:
             - name: grafana-storage
