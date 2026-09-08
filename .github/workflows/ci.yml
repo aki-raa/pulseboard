@@ -43,20 +43,6 @@ jobs:
           - chat-service
           - alert-service
 
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
-          MYSQL_DATABASE: pulseboard
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -68,6 +54,36 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - name: Start MySQL
+        env:
+          CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+        run: |
+          docker run -d \
+            --name pulseboard-mysql \
+            -e MYSQL_ROOT_PASSWORD="$CI_DB_PASSWORD" \
+            -e MYSQL_DATABASE=pulseboard \
+            -p 3306:3306 \
+            mysql:8.4
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            if docker exec pulseboard-mysql \
+              mysqladmin ping -h 127.0.0.1 -uroot -p"$CI_DB_PASSWORD" --silent; then
+              echo "MySQL is ready."
+              exit 0
+            fi
+
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+
+          echo "MySQL failed to become ready."
+          docker logs pulseboard-mysql
+          exit 1
+        env:
+          CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+
       - name: Build and test
         working-directory: ${{ matrix.service }}
         env:
@@ -75,7 +91,7 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
           JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
-        run: mvn clean verify -DskipTests=false
+        run: ./mvnw clean verify -DskipTests=false
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -96,3 +112,8 @@ jobs:
         run: |
           docker push ghcr.io/aki-raa/pulseboard-${{ matrix.service }}:latest
           docker push ghcr.io/aki-raa/pulseboard-${{ matrix.service }}:${{ github.sha }}
+
+      - name: Clean up MySQL
+        if: always()
+        run: |
+          docker rm -f pulseboard-mysql || true
