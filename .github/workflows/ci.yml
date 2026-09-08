@@ -66,10 +66,16 @@ jobs:
             mysql:8.4
 
       - name: Wait for MySQL
+        env:
+          CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
         run: |
           for i in {1..30}; do
             if docker exec pulseboard-mysql \
-              mysqladmin ping -h 127.0.0.1 -uroot -p"$CI_DB_PASSWORD" --silent; then
+              mysqladmin ping \
+              -h 127.0.0.1 \
+              -uroot \
+              -p"$CI_DB_PASSWORD" \
+              --silent; then
               echo "MySQL is ready."
               exit 0
             fi
@@ -81,8 +87,25 @@ jobs:
           echo "MySQL failed to become ready."
           docker logs pulseboard-mysql
           exit 1
+
+      - name: Verify CI secrets
         env:
           CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+          CI_JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+        run: |
+          if [ -n "$CI_DB_PASSWORD" ]; then
+            echo "CI_DB_PASSWORD is set"
+          else
+            echo "CI_DB_PASSWORD is missing"
+            exit 1
+          fi
+
+          if [ -n "$CI_JWT_SECRET" ]; then
+            echo "CI_JWT_SECRET is set"
+          else
+            echo "CI_JWT_SECRET is missing"
+            exit 1
+          fi
 
       - name: Build and test
         working-directory: ${{ matrix.service }}
